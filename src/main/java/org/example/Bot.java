@@ -1,28 +1,20 @@
 package org.example;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.TelegramBotsApi;
-import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Bot extends TelegramLongPollingBot {
     int stage = 0;
+    String tapesTrans = null;
+    String data = null;
     final String bus = "Автобусы";
     final String train = "Пригородные поезда";
     final String all = "Все";
@@ -43,47 +35,43 @@ public class Bot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        Storage storage = new Storage();
+        Parser parser = new Parser();
         ScriptMenu scriptMenu = new ScriptMenu();
         // We check if the update has a message and the message has text
         if (update.hasMessage() && update.getMessage().hasText()) {
             //Извлекаем из объекта сообщение пользователя
             String inMess = update.getMessage().getText();
-            ArrayList inTrains;
+            ArrayList <String> inTrains;
             long chatId = update.getMessage().getChatId();
             scriptMenu.setInMess(inMess, stage);
+            scriptMenu.getInMess();
 
-            switch (inMess) {
-                case "/start":
-                    transports(chatId);
-                    stage = 1;
-                    break;
-                case "/get":
-                    storage.setUrl(url);
-                    inTrains = storage.getquoteList();
-                    SendMessage message = new SendMessage(); // Create a SendMessage object with mandatory fields
+            switch (scriptMenu.getStage()) {
+                case 1 -> transports(chatId);
+                case 2 -> {
+                    stage = 0;
+                    url = "http://расписание.рф/" + tapesTrans + inMess + data;
+                    parser.setUrl(url);
+                    inTrains = parser.getParserList();
+                    SendMessage message = new SendMessage();
                     message.setChatId(update.getMessage().getChatId().toString());
-                    for (int i = 0; i < inTrains.size(); ++i) {
+                    for (String inTrain : inTrains) {
 
-                        message.setText((String) inTrains.get(i));
+                        message.setText(inTrain);
                         try {
-                            execute(message); // Call method to send the message
+                            execute(message);
                         } catch (TelegramApiException e) {
                             e.printStackTrace();
                         }
                     }
-                    break;
-                case "/test":
-                    break;
-                default:
-                    inMess = "Сообщение не распознано";
-
+                }
+                default -> inMess = "Неверная команда. Попробуйте /start";
             }
-            SendMessage message = new SendMessage(); // Create a SendMessage object with mandatory fields
+            SendMessage message = new SendMessage();
             message.setChatId(update.getMessage().getChatId().toString());
             message.setText(inMess);
             try {
-                execute(message); // Call method to send the message
+                execute(message);
             } catch (TelegramApiException e) {
                 e.printStackTrace();
             }
@@ -96,64 +84,38 @@ public class Bot extends TelegramLongPollingBot {
             message.setChatId(String.valueOf(chatId));
 
             switch (callbackData) {
-                case train:
-                    text = "train";
-                    message.setText(text);
-                    message.setMessageId((int) messageId);
+                case train -> {
+                    tapesTrans = "электричка/66/Екатеринбург/66/";
                     day(chatId);
-                    break;
-                case all:
-                    text = "all";
-                    message.setText(text);
-                    message.setMessageId((int) messageId);
+                }
+                case all -> {
+                    tapesTrans = "все/66/Екатеринбург/66/";
                     day(chatId);
-                    break;
-                case bus:
-                    text = "bus";
-                    message.setText(text);
-                    message.setMessageId((int) messageId);
+                }
+                case bus -> {
+                    tapesTrans = "автобус/66/Екатеринбург/66/";
                     day(chatId);
-                    break;
-                case today:
+                }
+                case today -> {
+                    data = "/сегодня";
                     destination(chatId);
-                    break;
-                case tomorrow:
+                }
+                case tomorrow -> {
+                    data = "/завтра";
                     destination(chatId);
-                    break;
-                case everyday:
+                }
+                case everyday -> {
+                    data = null;
                     destination(chatId);
-                    break;
-                default:
+                }
+                default -> {
                     text = "Сообщение не распознано";
                     message.setText(text);
                     message.setMessageId((int) messageId);
+                }
             }
         }
     }
-    //Получаем текст сообщения пользователя, отправляем в написанный нами обработчик
-/*            String response = parseMessage(inMess.getText());
-
-            //Создаем объект будущей клавиатуры и выставляем нужные настройки
-            ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
-            replyKeyboardMarkup.setResizeKeyboard(true); //подгоняем размер
-            replyKeyboardMarkup.setOneTimeKeyboard(false); //скрываем после использования
-
-            //Создаем список с рядами кнопок
-            List<KeyboardRow> keyboardRows = new ArrayList<>();
-            //Создаем один ряд кнопок и добавляем его в список
-            KeyboardRow row = new KeyboardRow();
-            row.add("Кусь");
-            keyboardRows.add(row);
-            //Добавляем одну кнопку с текстом "Просвяти" наш ряд
-//            keyboardRow.add(new KeyboardButton("Просвяти"));
-            //добавляем лист с одним рядом кнопок в главный объект
-            replyKeyboardMarkup.setKeyboard(keyboardRows);
-
-            SendMessage message = new SendMessage(); // Create a SendMessage object with mandatory fields
-            message.setChatId(update.getMessage().getChatId().toString());
-            message.setText(response);
-            message.setReplyMarkup(replyKeyboardMarkup);
-*/
 
     private void day(long chatId) {
         SendMessage message = new SendMessage();
@@ -185,7 +147,7 @@ public class Bot extends TelegramLongPollingBot {
         InLineKeyboard.setKeyboard(rowsInLine);
         message.setReplyMarkup(InLineKeyboard);
         try {
-            execute(message); // Call method to send the message
+            execute(message);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
@@ -225,7 +187,7 @@ public class Bot extends TelegramLongPollingBot {
         InLineKeyboard.setKeyboard(rowsInLine);
         message.setReplyMarkup(InLineKeyboard);
         try {
-            execute(message); // Call method to send the message
+            execute(message);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
@@ -235,8 +197,9 @@ public class Bot extends TelegramLongPollingBot {
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
         message.setText("Выбирите станцию назначения");
+        stage =2;
         try {
-            execute(message); // Call method to send the message
+            execute(message);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
