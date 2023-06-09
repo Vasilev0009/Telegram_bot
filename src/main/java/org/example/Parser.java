@@ -37,6 +37,9 @@ public class Parser {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        if (parserList.size() == 0){
+            parserList.add("Упс.Расписание не найдено");
+        }
         return parserList;
     }
 }
