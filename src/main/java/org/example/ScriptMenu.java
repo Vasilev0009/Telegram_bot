@@ -9,14 +9,16 @@ public class ScriptMenu {
         this.stage = stage;
         }
 
-    public void getInMess() {
+    public String getInMess() {
         if (stage ==0){
             if ("/start".equals(inMess)) {
                 stage = 1;
+                inMess = "OK";
             } else {
                 inMess = "Неверная команда. Попробуйте /start";
             }
         }
+        return inMess;
     }
 
     public int getStage() {

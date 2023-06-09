@@ -26,12 +26,9 @@ public class Parser {
 
             Elements thread = doc.select("tr > td > span.station");
             Elements time = doc.select("tr > td > span.time");
-            for (int i = 0; i < thread.size(); ++i) {
-                parserList.add("Станция отправления: " + thread.get(i).text() + "  Время отправления: " + time.get(i).text());
-                System.out.println("22");
-                i = i + 1;
-                parserList.add("Станция назначения: " + thread.get(i).text() + "  Время прибытия: " + time.get(1).text() + "\n");
-                parserList.add("\n");
+            for (int i = 0; i < thread.size(); i = i+2) {
+                parserList.add(thread.get(i).text() + " --> " + thread.get(i+1).text());
+                parserList.add("  Время отправления: " + time.get(i).text() + "  Время прибытия: " + time.get(i+1).text() + "\n");
             }
 
         } catch (IOException e) {
