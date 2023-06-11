@@ -13,17 +13,10 @@ public class Bot extends TelegramLongPollingBot {
     String tapesTrans = null;
     String destinationPoint = null;
     String data = null;
-    final String bus = "Автобусы";
-    final String train = "Пригородные поезда";
-    final String all = "Все";
-    final String today = "Сегодня";
-    final String tomorrow = "Завтра";
-    final String everyday = "Ежедневно";
-
     String url = "http://расписание.рф/автобус/66/Екатеринбург/45/Шадринск/завтра";
 
-    public Bot() {
-        super("6269475408:AAHHxNe0IUwkqKXHAIBo4Gz1ZbWcbaeA950");
+    public Bot(String botToken) {
+        super(botToken);
     }
 
     @Override
@@ -45,19 +38,15 @@ public class Bot extends TelegramLongPollingBot {
             inMess = scriptMenu.getInMess();
 
             switch (stage = scriptMenu.getStage()) {
-                case 1 -> {
-                    sendMessage(chatId, "Выберите вид транспорта", stage);
-                }
+                case 1 -> sendMessage(chatId, "Выберите вид транспорта", stage);
                 case 3 -> {
                     destinationPoint = inMess + "/66/";
                     destination(chatId);
 
                 }
                 case 4 -> {
-                    stage = 0;
                     url = "http://расписание.рф/" + tapesTrans + destinationPoint + inMess + data;
-                    parser.setUrl(url);
-                    inTrains = parser.getParserList();
+                    inTrains = parser.getParserList(url);
                     for (String inTrain : inTrains) {
                         sendMessage(chatId, inTrain,stage = 0);
                     }
@@ -74,27 +63,27 @@ public class Bot extends TelegramLongPollingBot {
 //            message.setChatId(String.valueOf(chatId));
 
             switch (callbackData) {
-                case train -> {
+                case "train" -> {
                     tapesTrans = "электричка/66/";
                     sendMessage(chatId,"Выбирите дату отправления",stage =2);
                 }
-                case all -> {
+                case "all" -> {
                     tapesTrans = "все/66/";
                     sendMessage(chatId,"Выбирите дату отправления",stage =2);
                 }
-                case bus -> {
+                case "bus" -> {
                     tapesTrans = "автобус/66/";
                     sendMessage(chatId,"Выбирите дату отправления",stage =2);
                 }
-                case today -> {
+                case "today" -> {
                     data = "/сегодня";
                     departure(chatId);
                 }
-                case tomorrow -> {
+                case "tomorrow" -> {
                     data = "/завтра";
                     departure(chatId);
                 }
-                case everyday -> {
+                case "everyday" -> {
                     data = null;
                     departure(chatId);
                 }
@@ -119,9 +108,8 @@ public class Bot extends TelegramLongPollingBot {
         message.setChatId(String.valueOf(chatId));
         message.setText(textToSend);
         if( 0 < stage && stage < 3) {
-            MarkupKeyboard markupkeyboard = new MarkupKeyboard(this);
-            markupkeyboard.setKey(stage);
-            markupkeyboard.getKeyboard();
+            MarkupKeyboard markupkeyboard = new MarkupKeyboard();
+            markupkeyboard.getKeyboard(stage);
             message.setReplyMarkup(markupkeyboard.inLineKeyboard);
         }
         try {
